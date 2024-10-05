@@ -38,7 +38,7 @@ def get_router_config(ssh_client):
     router_data['ethernet_interfaces'] = run_command("/interface ethernet print detail without-paging")
     router_data['vlan_interfaces'] = run_command("/interface vlan print detail without-paging")
     router_data['bridge_interfaces'] = run_command("/interface bridge print detail without-paging")
-    router_data['wlan_interfaces'] = run_command("/interface wifi print detail without-paging")
+    router_data['wireless_interfaces'] = run_command("/interface wireless print detail without-paging")
     router_data['hostname'] = parse_monitor(run_command("/system identity print without-paging"))
     router_data['system_resource'] = parse_monitor(run_command("/system resource print without-paging"))
     router_data['firmware_version'] = parse_monitor(run_command("/system routerboard print without-paging"))
@@ -47,7 +47,7 @@ def get_router_config(ssh_client):
     router_data['ethernet_interfaces'] = parse_details_without_paging(router_data['ethernet_interfaces'])
     router_data['vlan_interfaces'] = parse_details_without_paging(router_data['vlan_interfaces'])
     router_data['bridge_interfaces'] = parse_details_without_paging(router_data['bridge_interfaces'])
-    router_data['wlan_interfaces'] = parse_details_without_paging(router_data['wlan_interfaces'])
+    router_data['wireless_interfaces'] = parse_details_without_paging(router_data['wireless_interfaces'])
 
     # for each interface pick its name
     for index, interface_info in enumerate(router_data['ethernet_interfaces']):
@@ -82,7 +82,7 @@ def get_router_config(ssh_client):
             router_data['bridge_interfaces'][index]['monitor'] = monitor_data
 
 
-    for index, interface_info in enumerate(router_data['wlan_interfaces']):
+    for index, interface_info in enumerate(router_data['wireless_interfaces']):
         #print("interface_info: ", interface_info)
         if "name" in interface_info:
             #print("Found interface: ", interface_info["name"])
@@ -91,11 +91,11 @@ def get_router_config(ssh_client):
             #print("Interface name: ", interface_name)
 
             # Check if this interface has an SFP or SFP+ module
-            monitor_raw = run_command(f"/interface wifi monitor {interface_name} once")
+            monitor_raw = run_command(f"/interface wireless monitor {interface_name} once")
             #print(monitor)
             monitor_data = parse_monitor(monitor_raw)
 
-            router_data['wlan_interfaces'][index]['monitor'] = monitor_data
+            router_data['wireless_interfaces'][index]['monitor'] = monitor_data
 
     return router_data
 
@@ -183,7 +183,8 @@ def main(router_list):
 if __name__ == "__main__":
     print("Starting...")
     routers = [
-        {'ip': '79.134.250.2', 'port': 17, 'username': 'netbox', 'password': 'FflNpA9UShCW', 'hostname': 'router1'},
+        #{'ip': '79.134.250.2', 'port': 17, 'username': 'netbox', 'password': 'FflNpA9UShCW', 'hostname': 'router1'},
+        {'ip': '102.22.105.55', 'port': 17, 'username': 'netbox', 'password': 'FTVT949tvltD', 'hostname': 'router1'},
         # Add more routers here...
     ]
     main(routers)
