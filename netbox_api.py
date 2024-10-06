@@ -70,8 +70,8 @@ def cu_netbox(data):
 
     # Check if the device already exists
     # get device types
-    device_types = list(nb.dcim.sites.all())
-    print(device_types)
+    # device_types = list(nb.dcim.sites.all())
+    # print(device_types)
     # return
     
     device = nb.dcim.devices.get(serial=router_data['serial_number'])
