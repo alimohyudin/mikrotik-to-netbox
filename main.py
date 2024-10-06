@@ -189,8 +189,7 @@ def main(router_list):
 if __name__ == "__main__":
     print("Starting...")
     routers = [
-        {'ip': '79.134.250.2', 'port': 17, 'username': 'netbox', 'password': 'FflNpA9UShCW', 'hostname': 'pcb-r2.fink-telecom.com'},
-        #{'ip': '102.22.105.55', 'port': 17, 'username': 'netbox', 'password': 'FTVT949tvltD', 'hostname': 'router1'},
+        
         # Add more routers here...
     ]
     #main(routers)
