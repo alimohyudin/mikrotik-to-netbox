@@ -189,7 +189,6 @@ def main(router_list):
 if __name__ == "__main__":
     print("Starting...")
     routers = [
-        
         # Add more routers here...
     ]
     #main(routers)
