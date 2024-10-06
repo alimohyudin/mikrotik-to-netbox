@@ -188,9 +188,9 @@ def main(router_list):
 
 if __name__ == "__main__":
     print("Starting...")
-    routers = [
-        # Add more routers here...
-    ]
+    routers = []
+    with open('routers-list.json') as f:
+        routers = json.load(f)
     #main(routers)
     data = {
             "ethernet_interfaces": [
