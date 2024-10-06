@@ -70,7 +70,9 @@ def cu_netbox(data):
 
     # Check if the device already exists
     # get device types
-    return
+    device_types = list(nb.dcim.sites.all())
+    print(device_types)
+    # return
     
     device = nb.dcim.devices.get(serial=router_data['serial_number'])
 
@@ -80,10 +82,10 @@ def cu_netbox(data):
         # Create the device if it doesn't exist
         device = nb.dcim.devices.create(
             name=router_data['hostname'],
-            device_type={'model': router_data['device_model']},
-            device_role={'name': 'Router'},
+            device_type={'model': router_data['vendor'].capitalize()+' '+router_data['device_model']},
+            role={'name': 'Router'},
             serial=router_data['serial_number'],
-            site={'name': router_data['hostname']},  # Add appropriate site
+            site={'name': "Paris TH2"},  # Add appropriate site
             status='active',
             manufacturer={'name': router_data['vendor']},
         )
