@@ -119,8 +119,7 @@ def cu_netbox(data):
         #     )
         #     print(f"Assigned IP {ip} to interface {interface['name']}.")
 
-    
-    
+        
     # Create or update SFP modules
     for sfp in sfp_interfaces:
         break
@@ -170,9 +169,9 @@ def cu_netbox(data):
 
 
     # Bridge Interface
-    # Loop through the bridge interfaces to create them in NetBox
     bridge_intf = None
     for bridge in data['bridge_interfaces']:
+        break
         # Check if the bridge interface already exists
         bridge_intf = list(nb.dcim.interfaces.filter(device_id=device.id, name='bridge', type="virtual"))
 
@@ -200,7 +199,7 @@ def cu_netbox(data):
 
     #print("bridge: ", bridge_intf)
     for vlan in data['vlan_interfaces']:
-        #break
+        break
         # First, check if the parent interface (e.g., bond0) exists on the device
         #parent_interface = nb.dcim.interfaces.get(device_id=device.id, name=vlan['interface'])
         
@@ -234,6 +233,34 @@ def cu_netbox(data):
                 #tagged_vlans=[vlan['vlan-id']],  # Tag the VLAN with the appropriate ID
             )
             print(f"Created VLAN interface {vlan['name']} on parent {vlan['interface']}.")
+
+
+    ######################################################
+    # Create Update Serial Ports
+    ######################################################
+    
+    # Loop through the serial ports to create them in NetBox
+    for port in data['port']:
+        # Check if the serial port already exists on the device
+        serial_port = list(nb.dcim.console_ports.filter(device_id=device.id, name=port['name']))
+
+        if len(serial_port) > 0:
+            serial_port = serial_port[0]
+            print(f"Serial port {port['name']} already exists. Updating it.")
+            # Update the serial port properties
+            serial_port.update({
+                'description': port['used-by'],  # Description or purpose of the serial port
+                'speed': port['baud-rate'],      # Baud rate of the serial port
+            })
+        else:
+            # Create the serial port if it doesn't exist
+            nb.dcim.console_ports.create(
+                device=device.id,
+                name=port['name'],
+                description=port['used-by'],  # Description or purpose of the serial port
+                speed=port['baud-rate'],      # Baud rate of the serial port
+            )
+            print(f"Created serial port {port['name']} on device {device.name}.")
 
 
 

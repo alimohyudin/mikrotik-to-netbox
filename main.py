@@ -1719,7 +1719,20 @@ if __name__ == "__main__":
                 "factory-firmware": "7.1.3",
                 "current-firmware": "7.15.3",
                 "upgrade-firmware": "7.16"
-            }
+            },
+            "port": [
+                {
+                    "name": "serial0",
+                    "used-by": "Serial",
+                    "device": "",
+                    "channels": "1",
+                    "baud-rate": "115200",
+                    "data-bits": "8",
+                    "parity": "none",
+                    "stop-bits": "1",
+                    "flow-control": "none"
+                }
+            ]
         }
     data["hostname"] = routers[0]['hostname']
     data["primary_ipv4"] = routers[0]['ip']
