@@ -84,6 +84,16 @@ def cu_netbox(data):
         print(f"Created device {router_data['hostname']}.")
 
 
+    # check if ipam.ip_addresses exists or create one
+    # # Add IP addresses to the interface
+    # for ip in interface['ip_addresses']:
+    #     ip_obj = nb.ipam.ip_addresses.create(
+    #         address=ip,
+    #         assigned_object_type='dcim.interface',
+    #         assigned_object_id=intf.id,
+    #     )
+    #     print(f"Assigned IP {ip} to interface {interface['name']}.")
+
     #########################################################
     # create or update interfaces
     #########################################################
