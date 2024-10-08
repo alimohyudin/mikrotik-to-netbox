@@ -65,6 +65,19 @@ def cu_netbox(data):
             
         }])
     else:
+        # check if device type exists or create it
+        print(f"Device {router_data['hostname']} doesn't exist. Creating it.")
+        print(router_data['vendor'].capitalize()+' '+router_data['device_model'])
+        device_type = list(nb.dcim.device_types.filter(model=router_data['vendor'].capitalize()+' '+router_data['device_model']))
+        if len(device_type) == 0:
+            device_type = nb.dcim.device_types.create(
+                model=router_data['vendor'].capitalize()+' '+router_data['device_model'],
+                slug=router_data['vendor'].lower()+'-'+router_data['device_model'].lower(),
+                manufacturer={'name': router_data['vendor'].capitalize()},
+                airflow="front-to-rear",
+                is_full_depth=True,
+                u_height=1
+            )
         # Create the device if it doesn't exist
         device = nb.dcim.devices.create(
             name=router_data['hostname'],
@@ -83,16 +96,6 @@ def cu_netbox(data):
         )
         print(f"Created device {router_data['hostname']}.")
 
-
-    # check if ipam.ip_addresses exists or create one
-    # # Add IP addresses to the interface
-    # for ip in interface['ip_addresses']:
-    #     ip_obj = nb.ipam.ip_addresses.create(
-    #         address=ip,
-    #         assigned_object_type='dcim.interface',
-    #         assigned_object_id=intf.id,
-    #     )
-    #     print(f"Assigned IP {ip} to interface {interface['name']}.")
 
     #########################################################
     # create or update interfaces
@@ -129,8 +132,30 @@ def cu_netbox(data):
         #     )
         #     print(f"Assigned IP {ip} to interface {interface['name']}.")
 
+    
+    # Create or update SFP modules under Interfaces
+    for interface in sfp_interfaces:
+        break
+        intf = nb.dcim.interfaces.get(device_id=device.id, name=interface['name'])
         
-    # Create or update SFP modules
+        if intf:
+            print(f"Interface {interface['name']} exists. Updating it.")
+            # Update interface properties if needed
+            intf.update({
+                'mac_address': interface['mac-address'],
+                'type': get_valid_interface_types(interface['name']),
+            })
+        else:
+            # Create the interface if it doesn't exist
+            nb.dcim.interfaces.create(
+                device=device.id,
+                name=interface['name'],
+                type=get_valid_interface_types(interface['name']),
+                mac_address=interface['mac-address'],
+            )
+            print(f"Created interface {interface['name']}.")
+    
+    # Create or update SFP modules under Module Bays
     for sfp in sfp_interfaces:
         break
         # Check if a module bay exists for the SFP interface
@@ -183,7 +208,7 @@ def cu_netbox(data):
     for bridge in data['bridge_interfaces']:
         break
         # Check if the bridge interface already exists
-        bridge_intf = list(nb.dcim.interfaces.filter(device_id=device.id, name='bridge', type="virtual"))
+        bridge_intf = list(nb.dcim.interfaces.filter(device_id=device.id, name=bridge['name'], type="virtual"))
 
         if len(bridge_intf) > 0:
             bridge_intf = bridge_intf[0]
@@ -198,14 +223,14 @@ def cu_netbox(data):
             # Create the bridge interface if it doesn't exist
             bridge_intf = nb.dcim.interfaces.create(
                 device=device.id,
-                name='bridge',
+                name=bridge['name'],
                 type="virtual",  # Use the "bridge" type for bridge interfaces
                 mtu=bridge['mtu'] if bridge['mtu'] != 'auto' else None,  # Set MTU if not 'auto'
                 mac_address=bridge['mac-address'],
                 description="Bridge interface"
             )
             print(f"Created bridge interface {'bridge'}.")
-        break
+        #break
 
     #print("bridge: ", bridge_intf)
     for vlan in data['vlan_interfaces']:
@@ -245,12 +270,74 @@ def cu_netbox(data):
             print(f"Created VLAN interface {vlan['name']} on parent {vlan['interface']}.")
 
 
+
+    # Add IP addresses to the interface
+    # Loop through the IP addresses to create or update them in NetBox
+    for ip_data in data['ip_addresses']:
+        break
+        print(ip_data)
+        # Check if the interface exists on the device
+        interface = list(nb.dcim.interfaces.filter(device_id=device.id, name=ip_data['interface']))
+
+        if len(interface) == 0:
+            print(f"Interface {ip_data['interface']} not found. Skipping IP {ip_data['address']}.")
+            continue 
+        interface = interface[0]
+        # Check if the IP address already exists
+        ip = list(nb.ipam.ip_addresses.filter(address=ip_data['address']))
+
+        if len(ip) > 0:
+            ip = ip[0]
+            print(f"IP address {ip_data['address']} already exists. Updating it.")
+            # Update the IP address properties
+            ip.update({
+                'assigned_object_type': 'dcim.interface',  # Ensure it's assigned to an interface
+                'assigned_object_id': interface.id,        # Assign it to the correct interface
+            })
+        else:
+            # Create the IP address if it doesn't exist
+            nb.ipam.ip_addresses.create(
+                address=ip_data['address'],
+                status='active',                          # Set status to active (can be customized)
+                assigned_object_type='dcim.interface',    # Assign to an interface
+                assigned_object_id=interface.id,          # ID of the interface
+                description=f"IP on {ip_data['interface']}",  # Optional description
+            )
+            print(f"Created and assigned IP address {ip_data['address']} to interface {ip_data['interface']}.")
+
+
+
+    # Create or update Wireless Interfaces
+    for wlan in data['wireless_interfaces']:
+        # Check if the wireless interface already exists on the device
+        wireless = list(nb.wireless.wireless_lans.filter(ssid=wlan['ssid'], description=f"Wireless interface {wlan['name']} - Device {device.name}"))
+        print(wireless)
+
+        if len(wireless) > 0:
+            print(f"Wireless interface {wlan['name']} already exists. Updating it.")
+            # Update the wireless interface properties
+            wireless[0].update({
+                'ssid': wlan['ssid'],
+                'status': 'active' if wlan['monitor'].get('status', None) == 'running-ap' else 'disabled',
+                'description': f"Wireless interface {wlan['name']} - Device {device.name}",
+            })
+        else:
+            # Create the wireless interface if it doesn't exist
+            nb.wireless.wireless_lans.create(
+                ssid=wlan['ssid'],
+                status= 'active' if wlan['monitor'].get('status', None) == 'running-ap' else 'disabled',
+                description=f"Wireless interface {wlan['name']} - Device {device.name}",
+            )
+            print(f"Created wireless interface {wlan['name']} with SSID {wlan['ssid']}.")
+
+
     ######################################################
     # Create Update Serial Ports
     ######################################################
     
     # Loop through the serial ports to create them in NetBox
     for port in data['port']:
+        break
         # Check if the serial port already exists on the device
         serial_port = list(nb.dcim.console_ports.filter(device_id=device.id, name=port['name']))
 
@@ -274,13 +361,26 @@ def cu_netbox(data):
 
 
 
+
 ######################################################
 # Helper Functions
 ######################################################
 def get_valid_interface_types(name):
     valid_types = [ '1000base-kx','1000base-t','1000base-tx','1000base-x-gbic','1000base-x-sfp','100base-fx','100base-lfx','100base-t1','100base-tx','100base-x-sfp','100gbase-kp4','100gbase-kr2','100gbase-kr4','100gbase-x-cfp','100gbase-x-cfp2','100gbase-x-cfp4','100gbase-x-cpak','100gbase-x-cxp','100gbase-x-dsfp','100gbase-x-qsfp28','100gbase-x-qsfpdd','100gbase-x-sfpdd','10g-epon','10gbase-cx4','10gbase-kr','10gbase-kx4','10gbase-t','10gbase-x-sfpp','10gbase-x-x2','10gbase-x-xenpak','10gbase-x-xfp','128gfc-qsfp28','16gfc-sfpp','1gfc-sfp','2.5gbase-kx','2.5gbase-t','200gbase-x-cfp2','200gbase-x-qsfp56','200gbase-x-qsfpdd','25g-pon','25gbase-kr','25gbase-x-sfp28','2gfc-sfp','32gfc-sfp28','32gfc-sfpp','400gbase-x-cdfp','400gbase-x-cfp2','400gbase-x-cfp8','400gbase-x-osfp','400gbase-x-osfp-rhs','400gbase-x-qsfp112','400gbase-x-qsfpdd','40gbase-kr4','40gbase-x-qsfpp','4g','4gfc-sfp','50g-pon','50gbase-kr','50gbase-x-sfp28','50gbase-x-sfp56','5g','5gbase-kr','5gbase-t','64gfc-qsfpp','64gfc-sfpdd','64gfc-sfpp','800gbase-x-osfp','800gbase-x-qsfpdd','8gfc-sfpp','bpon','bridge','cdma','cisco-flexstack','cisco-flexstack-plus','cisco-stackwise','cisco-stackwise-160','cisco-stackwise-1t','cisco-stackwise-320','cisco-stackwise-480','cisco-stackwise-80','cisco-stackwise-plus','docsis','e1','e3','epon','extreme-summitstack','extreme-summitstack-128','extreme-summitstack-256','extreme-summitstack-512','gpon','gsm','ieee802.11a','ieee802.11ac','ieee802.11ad','ieee802.11ax','ieee802.11ay','ieee802.11be','ieee802.11g','ieee802.11n','ieee802.15.1','ieee802.15.4','infiniband-ddr','infiniband-edr','infiniband-fdr','infiniband-fdr10','infiniband-hdr','infiniband-ndr','infiniband-qdr','infiniband-sdr','infiniband-xdr','juniper-vcp','lag','lte','ng-pon2','other','other-wireless','sonet-oc12','sonet-oc192','sonet-oc1920','sonet-oc3','sonet-oc3840','sonet-oc48','sonet-oc768','t1','t3','virtual','xdsl','xg-pon','xgs-pon']
     
-    return valid_types
+    try:
+        if name is None:
+            return valid_types[0]
+        # find if valid_types contains part name
+        name = name.lower()
+        name = name.split('-')[0]
+        
+        matched_strings = [s for s in valid_types if name in s]
+        
+        return matched_strings[0]
+    except Exception as e:
+        print(e)
+        return valid_types[0]
 
 def create_or_update_module(nb, device, sfp, module_bay):
     
