@@ -195,11 +195,11 @@ if __name__ == "__main__":
     routers = []
     with open('routers-list.json') as f:
         routers = json.load(f)
-    #main(routers)
+    main(routers)
     
-    with open('pcb-r2.fink-telecom.com-everything.json') as f:
-        data = json.load(f)
+    # with open('pcb-r2.fink-telecom.com-everything.json') as f:
+    #     data = json.load(f)
     
-        data["hostname"] = routers[0]['hostname']
-        data["primary_ipv4"] = routers[0]['ip']
-        cu_netbox(data)
+    #     data["hostname"] = routers[0]['hostname']
+    #     data["primary_ipv4"] = routers[0]['ip']
+    #     cu_netbox(data)
