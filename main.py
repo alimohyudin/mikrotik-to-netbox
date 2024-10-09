@@ -192,14 +192,14 @@ def main(router_list):
 
 if __name__ == "__main__":
     print("Starting...")
-    routers = []
-    with open('routers-list.json') as f:
-        routers = json.load(f)
-    main(routers)
+    # routers = []
+    # with open('routers-list.json') as f:
+    #     routers = json.load(f)
+    #main(routers)
     
-    # with open('pcb-r2.fink-telecom.com-everything.json') as f:
-    #     data = json.load(f)
+    with open('./temp/freetown-r2.cajutel.sl-everything.json') as f:
+        data = json.load(f)
     
-    #     data["hostname"] = routers[0]['hostname']
-    #     data["primary_ipv4"] = routers[0]['ip']
-    #     cu_netbox(data)
+        data["hostname"] = 'freetown-r2.cajutel.sl'#routers[0]['hostname']
+        data["primary_ipv4"] = ''#routers[0]['ip']
+        cu_netbox(data)

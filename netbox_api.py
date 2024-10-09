@@ -68,12 +68,16 @@ def cu_netbox(data):
     else:
         # check if device type exists or create it
         print(f"Device {router_data['hostname']} doesn't exist. Creating it.")
-        print(router_data['vendor'].capitalize()+' '+router_data['device_model'])
+        print(router_data['vendor'].lower()+'-'+router_data['device_model'].lower())
+        slug = router_data['vendor'].lower()+'-'+router_data['device_model'].lower()
+        # in slug replace all non-alphanumeric characters with a dash
+        slug = ''.join(e if e.isalnum() else '-' for e in slug)
+        print(slug)
         device_type = list(nb.dcim.device_types.filter(model=router_data['vendor'].capitalize()+' '+router_data['device_model']))
         if len(device_type) == 0:
             device_type = nb.dcim.device_types.create(
                 model=router_data['vendor'].capitalize()+' '+router_data['device_model'],
-                slug=router_data['vendor'].lower()+'-'+router_data['device_model'].lower(),
+                slug=slug,
                 manufacturer={'name': router_data['vendor'].capitalize()},
                 airflow="front-to-rear",
                 is_full_depth=True,
