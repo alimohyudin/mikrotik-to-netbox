@@ -178,9 +178,9 @@ def main(router_list):
 
         # save data to file
         if data is not None:
-            with open(f"{router['hostname']}-everything.json", "w") as f:
+            with open(f"./temp/{router['hostname']}-everything.json", "w") as f:
                 json.dump(data, f, indent=4)
-                print(f"Data saved to {router['hostname']}-everything.json")
+                print(f"Data saved to ./temp/{router['hostname']}-everything.json")
             
             data["hostname"] = router['hostname']
             data["primary_ipv4"] = router['ip']
