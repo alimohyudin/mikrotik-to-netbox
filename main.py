@@ -187,7 +187,7 @@ def main(router_list):
             # process data
             cu_netbox(data)
 
-
+        #break
         #create_or_update_device_in_netbox(data)
 
 if __name__ == "__main__":
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         routers = json.load(f)
     #main(routers)
     
-    with open('coo.cajutel.sl-everything.json') as f:
+    with open('pcb-r2.fink-telecom.com-everything.json') as f:
         data = json.load(f)
     
         data["hostname"] = routers[0]['hostname']

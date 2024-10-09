@@ -1,4 +1,5 @@
 import pynetbox
+import ipaddress
 
 # Your NetBox instance URL and API token
 NETBOX_URL = 'https://lab-netbox.fink-telecom.com/'
@@ -103,7 +104,7 @@ def cu_netbox(data):
 
 
     for interface in simple_interfaces:
-        break
+        #break
         # Check if interface exists on the device
         intf = nb.dcim.interfaces.get(device_id=device.id, name=interface['name'])
         if intf:
@@ -135,7 +136,7 @@ def cu_netbox(data):
     
     # Create or update SFP modules under Interfaces
     for interface in sfp_interfaces:
-        break
+        #break
         intf = nb.dcim.interfaces.get(device_id=device.id, name=interface['name'])
         
         if intf:
@@ -157,7 +158,7 @@ def cu_netbox(data):
     
     # Create or update SFP modules under Module Bays
     for sfp in sfp_interfaces:
-        break
+        #break
         # Check if a module bay exists for the SFP interface
         module_bay = list(nb.dcim.module_bays.filter(device_id=device.id, name=sfp['name']))
 
@@ -206,7 +207,7 @@ def cu_netbox(data):
     # Bridge Interface
     bridge_intf = None
     for bridge in data['bridge_interfaces']:
-        break
+        #break
         # Check if the bridge interface already exists
         bridge_intf = list(nb.dcim.interfaces.filter(device_id=device.id, name=bridge['name'], type="virtual"))
 
@@ -234,7 +235,7 @@ def cu_netbox(data):
 
     #print("bridge: ", bridge_intf)
     for vlan in data['vlan_interfaces']:
-        break
+        #break
         # First, check if the parent interface (e.g., bond0) exists on the device
         #parent_interface = nb.dcim.interfaces.get(device_id=device.id, name=vlan['interface'])
         
@@ -248,6 +249,7 @@ def cu_netbox(data):
         if len(vlan_intf) > 0:
             print(f"VLAN interface {vlan['name']} already exists. Updating it.")
             # Update the VLAN interface properties
+            vlan_intf = vlan_intf[0]
             vlan_intf.update({
                 'mtu': vlan['mtu'],
                 'mac_address': vlan['mac-address'],
@@ -274,7 +276,7 @@ def cu_netbox(data):
     # Add IP addresses to the interface
     # Loop through the IP addresses to create or update them in NetBox
     for ip_data in data['ip_addresses']:
-        break
+        #break
         print(ip_data)
         # Check if the interface exists on the device
         interface = list(nb.dcim.interfaces.filter(device_id=device.id, name=ip_data['interface']))
@@ -282,6 +284,43 @@ def cu_netbox(data):
         if len(interface) == 0:
             print(f"Interface {ip_data['interface']} not found. Skipping IP {ip_data['address']}.")
             continue 
+        
+        
+        ###########################
+        #### Create/Update Ip Ranges
+        ###########################
+        network = ipaddress.IPv4Network(ip_data['network'] + '/' + ip_data['address'].split('/')[1], strict=False)
+
+        # Calculate the first and last IP in the range
+        start_address = str(network.network_address)
+        end_address = str(network.broadcast_address)
+        
+        ip_ranges = list(nb.ipam.ip_ranges.filter(start_address=start_address, end_address=end_address))
+        
+        if start_address != end_address:            
+            if len(ip_ranges) > 0:
+                ip_ranges = ip_ranges[0]
+                print(f"IP Range {ip_data['network']} already exists. Updating it.")
+                # Update the IP range properties
+                ip_ranges.update({
+                    'description': f"Interface {ip_data['interface']}",
+                    'start_address': start_address,
+                    'end_address': end_address,
+                })
+            else:
+                # Create the IP range if it doesn't exist
+                nb.ipam.ip_ranges.create(
+                    description=f"Interface {ip_data['interface']}",
+                    start_address=start_address,
+                    end_address=end_address
+                )
+                print(f"Created IP Range {ip_data['network']} on interface {ip_data['interface']}.")
+        
+        ###########################
+        #### End
+        ###########################
+        
+        
         interface = interface[0]
         # Check if the IP address already exists
         ip = list(nb.ipam.ip_addresses.filter(address=ip_data['address']))
@@ -293,6 +332,8 @@ def cu_netbox(data):
             ip.update({
                 'assigned_object_type': 'dcim.interface',  # Ensure it's assigned to an interface
                 'assigned_object_id': interface.id,        # Assign it to the correct interface
+                'start_address': start_address,
+                'end_address': end_address,
             })
         else:
             # Create the IP address if it doesn't exist
@@ -302,6 +343,8 @@ def cu_netbox(data):
                 assigned_object_type='dcim.interface',    # Assign to an interface
                 assigned_object_id=interface.id,          # ID of the interface
                 description=f"IP on {ip_data['interface']}",  # Optional description
+                start_address = start_address,
+                end_address = end_address,
             )
             print(f"Created and assigned IP address {ip_data['address']} to interface {ip_data['interface']}.")
 
@@ -337,7 +380,7 @@ def cu_netbox(data):
     
     # Loop through the serial ports to create them in NetBox
     for port in data['port']:
-        break
+        #break
         # Check if the serial port already exists on the device
         serial_port = list(nb.dcim.console_ports.filter(device_id=device.id, name=port['name']))
 
