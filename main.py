@@ -3,6 +3,7 @@ import pynetbox
 import requests
 import json
 import re
+from netbox_api import cu_netbox 
 
 
 
@@ -42,12 +43,16 @@ def get_router_config(ssh_client):
     router_data['hostname'] = parse_monitor(run_command("/system identity print without-paging"))
     router_data['system_resource'] = parse_monitor(run_command("/system resource print without-paging"))
     router_data['firmware_version'] = parse_monitor(run_command("/system routerboard print without-paging"))
+    router_data['port'] = run_command("/port print detail without-paging")
+    router_data['ip_addresses'] = run_command("/ip address print detail without-paging")
     #router_data['full_config'] = run_command("/export")
 
     router_data['ethernet_interfaces'] = parse_details_without_paging(router_data['ethernet_interfaces'])
     router_data['vlan_interfaces'] = parse_details_without_paging(router_data['vlan_interfaces'])
     router_data['bridge_interfaces'] = parse_details_without_paging(router_data['bridge_interfaces'])
     router_data['wireless_interfaces'] = parse_details_without_paging(router_data['wireless_interfaces'])
+    router_data['port'] = parse_details_without_paging(router_data['port'])
+    router_data['ip_addresses'] = parse_details_without_paging(router_data['ip_addresses'])
 
     # for each interface pick its name
     for index, interface_info in enumerate(router_data['ethernet_interfaces']):
@@ -173,16 +178,28 @@ def main(router_list):
 
         # save data to file
         if data is not None:
-            with open(f"{router['hostname']}-everything.json", "w") as f:
+            with open(f"./temp/{router['hostname']}-everything.json", "w") as f:
                 json.dump(data, f, indent=4)
-                print(f"Data saved to {router['hostname']}-everything.json")
+                print(f"Data saved to ./temp/{router['hostname']}-everything.json")
+            
+            data["hostname"] = router['hostname']
+            data["primary_ipv4"] = router['ip']
+            # process data
+            cu_netbox(data)
 
-
+        #break
         #create_or_update_device_in_netbox(data)
 
 if __name__ == "__main__":
     print("Starting...")
-    routers = [
-        # Add more routers here...
-    ]
+    routers = []
+    with open('routers-list.json') as f:
+        routers = json.load(f)
     main(routers)
+    
+    # with open('./temp/freetown-r2.cajutel.sl-everything.json') as f:
+    #     data = json.load(f)
+    
+    #     data["hostname"] = 'freetown-r2.cajutel.sl'#routers[0]['hostname']
+    #     data["primary_ipv4"] = ''#routers[0]['ip']
+    #     cu_netbox(data)
